@@ -1154,6 +1154,7 @@ var Token = {
         return $.get('/rota/token')
             .done(function(response) {
                 sessionStorage.setItem('token', response.token);
+                sessionStorage.setItem('apiUrl', response.apiUrl);
                 return response.token;
             });
     }
@@ -1166,18 +1167,24 @@ var Ajax = require('./Ajax');
 
 
 var EventModel = {
-    url: '/api/events',
+    url: function() {
+        if (sessionStorage.getItem('apiUrl')) {
+            return sessionStorage.getItem('apiUrl') + '/api/events';
+        } else {
+            return '/api/events';
+        }
+    },
 
     all: function () {
-        return Ajax.get(this.url);
+        return Ajax.get(this.url());
     },
 
     findById: function(modelId) {
-        return Ajax.get(this.url + '/' + modelId);
+        return Ajax.get(this.url() + '/' + modelId);
     },
 
     dates: function(modelId) {
-        return Ajax.get(this.url + '/' + modelId + '/dates');
+        return Ajax.get(this.url() + '/' + modelId + '/dates');
     }
 };
 
@@ -1188,15 +1195,21 @@ var Ajax = require('./Ajax');
 
 
 var EventDate = {
-    url: '/api/eventdates',
+    url: function() {
+        if (sessionStorage.getItem('apiUrl')) {
+            return sessionStorage.getItem('apiUrl') + '/api/eventdates';
+        } else {
+            return '/api/eventdates';
+        }
+    },
 
     findById: function(modelId) {
-        return Ajax.get(this.url + '/' + modelId);
+        return Ajax.get(this.url() + '/' + modelId);
     },
 
     updateRota: function(modelId, rolePerson) {
         // Expecting dictionary: {role_id: person_id}
-        return Ajax.post(this.url + '/' + modelId + '/rota', rolePerson);
+        return Ajax.post(this.url() + '/' + modelId + '/rota', rolePerson);
     }
 };
 
@@ -1207,14 +1220,20 @@ var Ajax = require('./Ajax');
 
 
 var Person = {
-    url: '/api/people',
+    url: function() {
+        if (sessionStorage.getItem('apiUrl')) {
+            return sessionStorage.getItem('apiUrl') + '/api/people';
+        } else {
+            return '/api/people';
+        }
+    },
 
     permissions: function() {
-        return Ajax.get(this.url + '/permissions');
+        return Ajax.get(this.url() + '/permissions');
     },
 
     all: function () {
-        return Ajax.get(this.url);
+        return Ajax.get(this.url());
     },
 
     findById: function(personId) {
@@ -1222,18 +1241,18 @@ var Person = {
         if (!personId) {
             // Get the current user's details
             //return $.get(this.url + '/me');
-            return Ajax.get(this.url + '/me');
+            return Ajax.get(this.url() + '/me');
         } else {
-            return Ajax.get(this.url + '/' + personId);
+            return Ajax.get(this.url() + '/' + personId);
         }
     },
 
     rota: function(personId, range) {
-        return Ajax.post(this.url + '/' + personId + '/rota', {range: range});
+        return Ajax.post(this.url() + '/' + personId + '/rota', {range: range});
     },
 
     awayDates: function(personId, range) {
-        return Ajax.post(this.url + '/' + personId + '/away', {range: range});
+        return Ajax.post(this.url() + '/' + personId + '/away', {range: range});
     }
 };
 

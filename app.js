@@ -7,14 +7,13 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+// Google auth and session management
 var passport = require('passport');
 var session = require('express-session');
 var pg = require('pg');
 var pgSession = require('connect-pg-simple')(session);
 var GoogleStrategy = require('passport-google-oauth2').Strategy;
 var authenticate = require('./utils/utils').authenticate;
-var expressJwt = require('express-jwt');
-var jwt = require('jsonwebtoken');
 
 var SESSION_MAX_AGE = 86400000;
 
@@ -36,10 +35,8 @@ passport.use(new GoogleStrategy({
         clientSecret: process.env.CLIENT_SECRET
     },
     function(request, accessToken, refreshToken, profile, done) {
-        console.log('---------------------session authenticate');
         // Authenticate the user against the database and get permissions
         authenticate(request, profile);
-
         return done(null, profile);
     }
 ));
@@ -73,20 +70,10 @@ app.use( passport.session());
 
 var routes = require('./routes/index');
 var rota = require('./routes/rota');
-var people = require('./routes/people');
-var events = require('./routes/events');
-var eventdates = require('./routes/eventdates');
 
+// Main views
 app.use('/', routes);
 app.use('/rota', rota);
-app.use('/api', expressJwt({secret: process.env.APP_SECRET}));
-app.use('/api', people);
-app.use('/api', events);
-app.use('/api', eventdates);
-
-app.get('/login', function(req, res){
-    res.render('login', { user: req.user });
-});
 
 // Redirect the user to Google for authentication.  When complete, Google
 // will redirect the user back to the application at /auth/google/return
@@ -102,7 +89,7 @@ app.get('/auth/google',
 app.get( '/auth/google/return',
     passport.authenticate( 'google', {
         successRedirect: '/rota',
-        failureRedirect: '/login'
+        failureRedirect: '/'
     }));
 
 

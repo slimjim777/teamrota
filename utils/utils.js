@@ -19,7 +19,7 @@ var utils = {
             // First, authenticate the user using the email address
             function(callback) {
                 pg.connect(process.env.DATABASE_URL, function(err, client, done) {
-                    var query = client.query("SELECT * FROM person WHERE active and email = $1", [profile.email]);
+                    var query = client.query(sql.personForEmail(), [profile.email]);
 
                     var records = [];
                     query.on('row', function(row) {
