@@ -4,7 +4,7 @@
   "description": "Team Rota",
   "author": "",
   "license": "MIT",
-  "main": "app.js",
+  "main": "./bin/www",
   "scripts": {
     "test": "jest",
     "start": "node ./bin/www"
@@ -15,6 +15,12 @@
       "react"
     ]
   },
+
+  "engines": {
+    "node": ">= 0.10",
+    "npm": ">= 1.0.0"
+  },
+
   "devDependencies": {
     "eslint": "^1.4.1",
     "gulp": "^3.9.0",
@@ -26,7 +32,6 @@
     "gulp-rename": "^1.2.2",
     "gulp-shell": "^0.4.2",
     "gulp-watch": "^4.3.5",
-    "iojs": "^1.0.0",
     "jest-cli": "^0.5.0",
     "react-tools": "^0.13.3",
     "run-sequence": "^1.1.2",
