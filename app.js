@@ -14,7 +14,7 @@ var pg = require('pg');
 var pgSession = require('connect-pg-simple')(session);
 var GoogleStrategy = require('passport-google-oauth2').Strategy;
 var authenticate = require('./utils/utils').authenticate;
-
+var sql = require('./utils/query');
 var SESSION_MAX_AGE = 86400000;
 
 
@@ -57,7 +57,7 @@ app.use('/media', express.static(path.join(__dirname, 'media')));
 app.use(session({
     store: new pgSession({
         pg: pg,
-        conString: process.env.DATABASE_URL
+        conString: sql.databaseUrl()
     }),
     secret: process.env.APP_SECRET,
     saveUninitialized: true,

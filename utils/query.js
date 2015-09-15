@@ -18,6 +18,10 @@ var sql = {
 
     updateLastLogin: function() {
         return "update person set last_login=now() where id=$1";
+    },
+
+    databaseUrl: function() {
+        return process.env.DATABASE_URL || process.env.OPENSHIFT_POSTGRESQL_DB_URL;
     }
 };
 
