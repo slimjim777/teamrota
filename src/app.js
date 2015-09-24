@@ -6,6 +6,7 @@ var RouteHandler = Router.RouteHandler;
 var DefaultRoute = Router.DefaultRoute;
 var MyRota = require('./components/MyRota');
 var People = require('./components/People');
+var PeopleEdit = require('./components/PeopleEdit');
 var Events = require('./components/Events');
 var EventDetail = require('./components/EventDetail');
 
@@ -15,8 +16,6 @@ var CollapsibleNav = require('react-bootstrap').CollapsibleNav;
 var NavItem = require('react-bootstrap').NavItem;
 var Token = require('./models/Token');
 
-// Get the API token and store in the browser session storage
-Token.get();
 
 var App = React.createClass({
     render: function() {
@@ -45,6 +44,7 @@ var routes = (
         <Route path="me" handler={MyRota}/>
         <Route path="person/:id" handler={MyRota}/>
         <Route path="people" handler={People}/>
+        <Route path="people/:id/edit" handler={PeopleEdit}/>
         <Route path="events" handler={Events} />
         <Route path="events/:id" handler={EventDetail} />
         <Route path="events/:id/:dateId" handler={EventDetail} />
@@ -53,5 +53,11 @@ var routes = (
 
 
 Router.run(routes, function(Root) {
-    React.render(<Root/>, document.getElementById('app'));
+    // Get the API token and store in the browser session storage
+    Token.get().done(function(response) {
+        sessionStorage.setItem('token', response.token);
+        sessionStorage.setItem('role', response.role);
+        sessionStorage.setItem('apiUrl', response.apiUrl);
+        React.render(<Root/>, document.getElementById('app'));
+    });
 });

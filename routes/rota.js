@@ -15,6 +15,7 @@ router.get('/token', ensureAuthenticated, function(req, res, next) {
     // Return the JWT token for the API access
     res.json({
         token: req.session.token,
+        role: req.session.user.role,
         apiUrl: process.env.API_URL
     });
 });

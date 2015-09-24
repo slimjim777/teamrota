@@ -258,3 +258,7 @@ table.rota {
  .table-striped, .table-striped th {
  	text-align: center;
  }
+
+.left-align, th.left-align {
+    text-align: left;
+}

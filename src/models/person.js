@@ -19,6 +19,10 @@ var Person = {
         return Ajax.get(this.url());
     },
 
+    update: function(person) {
+        return Ajax.put(this.url() + '/' + person.id, person);
+    },
+
     findById: function(personId) {
 
         if (!personId) {

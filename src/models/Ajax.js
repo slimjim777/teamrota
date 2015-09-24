@@ -17,6 +17,15 @@ var Ajax = {
             data: data,
             method: 'POST'
         });
+    },
+
+    put: function(url, data) {
+        return $.ajax(url, {
+            headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')},
+            dataType: 'json',
+            data: data,
+            method: 'PUT'
+        });
     }
 };
 
