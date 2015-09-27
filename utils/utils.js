@@ -3,6 +3,7 @@ var pg = require('pg');
 var async = require('async');
 var sql = require('../utils/query');
 var jwt = require('jsonwebtoken');
+var requests = require('then-request');
 var SESSION_MAX_AGE_mins = 1440;
 
 
@@ -19,7 +20,7 @@ var utils = {
             // First, authenticate the user using the email address
             function(callback) {
                 pg.connect(sql.databaseUrl(), function(err, client, done) {
-                    var query = client.query(sql.personForEmail(), [profile.email]);
+                    var query = client.query(sql.userForEmail(), [profile.email]);
 
                     var records = [];
                     query.on('row', function(row) {
@@ -35,18 +36,22 @@ var utils = {
                                 userId: records[0].id,
                                 email: profile.email,
                                 name: profile.displayName,
-                                role: records[0].user_role
+                                role_rota: records[0].role_rota,
+                                role_music: records[0].role_music
                             };
                             request.session.user = user;
+                            request.session.save(function() {
+                                client.end();
+                                callback(error, request, user);
+                            });
                         } else {
                             // TODO: redirect to the error page
                             request.session = null;
                             error = 'User not found';
-                        }
-                        request.session.save(function() {
                             client.end();
                             callback(error, request, user);
-                        });
+                        }
+
                     });
                 });
             },
@@ -57,30 +62,33 @@ var utils = {
                     callback('User not found', null);
                 }
 
-                pg.connect(sql.databaseUrl(), function(err, client, done) {
-                    var query = client.query(sql.permissions(), [user.userId]);
+                // Create a one-time auth token to call the rota API
+                var token = jwt.sign(
+                    user, process.env.APP_SECRET, { expiresInMinutes: 1 });
+                var options = {headers: {Authorization: 'Bearer ' + token}};
 
-                    var records = [];
-                    query.on('row', function(row) {
-                        records.push(row);
-                    });
+                // Call the rota API to get the permissions
+                requests('GET', process.env.API_URL + '/api/people/permissions', options).then(function(response) {
+                    if (response.statusCode === 200) {
+                        // Add the rota permissions to the session
+                        var data = JSON.parse(response.getBody().toString());
+                        request.session.user.rota_permissions = data.rota_permissions;
 
-                    // After all data is returned, close connection and return results
-                    query.on('end', function() {
-                        // Store the events that the user can administrate
-                        user.eventAdministrate = records;
-                        request.session.user = user;
-
-                        // Add the JWT token to the session
+                        // Generate a token with the user details
                         request.session.token = jwt.sign(
-                            user, process.env.APP_SECRET, { expiresInMinutes: SESSION_MAX_AGE_mins });
+                            request.session.user, process.env.APP_SECRET, { expiresInMinutes: SESSION_MAX_AGE_mins });
 
+                        // Save the updated session
                         request.session.save(function() {
-                            client.end();
                             callback(null, request, user);
                         });
+                    } else {
+                        callback('Permissions call error: ' + response.statusCode, request, user);
+                    }
+                })
+                .catch(function(response) {
+                        callback('Permissions call error: ' + response.statusCode, request, user);
                     });
-                });
             },
 
             // Third, update the last login of the user

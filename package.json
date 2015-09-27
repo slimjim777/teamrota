@@ -15,12 +15,10 @@
       "react"
     ]
   },
-
   "engines": {
     "node": ">= 0.10",
     "npm": ">= 1.0.0"
   },
-
   "devDependencies": {
     "eslint": "^1.4.1",
     "gulp": "^3.9.0",
@@ -59,6 +57,7 @@
     "react-bootstrap": "^0.24.5",
     "react-router": "^0.13.3",
     "request": "^2.61.0",
-    "serve-favicon": "^2.3.0"
+    "serve-favicon": "^2.3.0",
+    "then-request": "^2.1.1"
   }
 }
