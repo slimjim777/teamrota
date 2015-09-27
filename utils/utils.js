@@ -16,6 +16,7 @@ var utils = {
     },
 
     authenticate: function(request, profile) {
+
         async.waterfall([
             // First, authenticate the user using the email address
             function(callback) {
@@ -35,6 +36,9 @@ var utils = {
                             user = {
                                 userId: records[0].id,
                                 email: profile.email,
+                                firstname: records[0].firstname,
+                                lastname: records[0].lastname,
+                                active: records[0].active,
                                 name: profile.displayName,
                                 role_rota: records[0].role_rota,
                                 role_music: records[0].role_music
@@ -62,33 +66,7 @@ var utils = {
                     callback('User not found', null);
                 }
 
-                // Create a one-time auth token to call the rota API
-                var token = jwt.sign(
-                    user, process.env.APP_SECRET, { expiresInMinutes: 1 });
-                var options = {headers: {Authorization: 'Bearer ' + token}};
-
-                // Call the rota API to get the permissions
-                requests('GET', process.env.API_URL + '/api/people/permissions', options).then(function(response) {
-                    if (response.statusCode === 200) {
-                        // Add the rota permissions to the session
-                        var data = JSON.parse(response.getBody().toString());
-                        request.session.user.rota_permissions = data.rota_permissions;
-
-                        // Generate a token with the user details
-                        request.session.token = jwt.sign(
-                            request.session.user, process.env.APP_SECRET, { expiresInMinutes: SESSION_MAX_AGE_mins });
-
-                        // Save the updated session
-                        request.session.save(function() {
-                            callback(null, request, user);
-                        });
-                    } else {
-                        callback('Permissions call error: ' + response.statusCode, request, user);
-                    }
-                })
-                .catch(function(response) {
-                        callback('Permissions call error: ' + response.statusCode, request, user);
-                    });
+                utils.getRotaPermissions(request, user, callback);
             },
 
             // Third, update the last login of the user
@@ -107,7 +85,6 @@ var utils = {
 
                     });
                 });
-
             }
 
         ], function(err, request, user) {
@@ -118,7 +95,53 @@ var utils = {
             if (!user) {
                 // TODO: redirect to the error page
                 console.log('User not found');
+            } else {
+                // Update the rota user to keep it in sync
+                utils.updateRotaUser(request, user);
             }
+        });
+    },
+
+    // Get the permissions for the user from the rota API
+    getRotaPermissions: function(request, user, callback) {
+        // Create a one-time auth token to call the rota API
+        var token = jwt.sign(
+            user, process.env.APP_SECRET, { expiresInMinutes: 1 });
+        var options = {headers: {Authorization: 'Bearer ' + token}};
+
+        // Call the rota API to get the permissions
+        requests('GET', process.env.API_URL + '/api/people/permissions', options).then(function(response) {
+            if (response.statusCode === 200) {
+                // Add the rota permissions to the session
+                var data = JSON.parse(response.getBody().toString());
+                request.session.user.rota_permissions = data.rota_permissions;
+
+                // Generate a token with the user details
+                request.session.token = jwt.sign(
+                    request.session.user, process.env.APP_SECRET, { expiresInMinutes: SESSION_MAX_AGE_mins });
+
+                // Save the updated session
+                request.session.save(function() {
+                    callback(null, request, user);
+                });
+            } else {
+                callback('Permissions call error: ' + response.statusCode, request, user);
+            }
+        })
+        .catch(function(response) {
+            callback('Permissions call error: ' + response.statusCode, request, user);
+        });
+    },
+
+    // Update the rota person details from the user details
+    updateRotaUser: function(request, user) {
+        var options = {
+            headers: {Authorization: 'Bearer ' + request.session.token},
+            json: user
+        };
+
+        requests('POST', process.env.API_URL + '/api/people/me', options).then(function(response) {
+            console.log('updated rota person');
         });
     }
  };
