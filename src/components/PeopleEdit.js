@@ -37,10 +37,10 @@ var PeopleEdit = React.createClass({
         this.updateState('email', e.target.value);
     },
     handleGuest: function(e) {
-        this.updateState('guest', e.target.value);
+        this.updateState('guest', e.target.checked);
     },
     handleActive: function(e) {
-        this.updateState('active', e.target.value);
+        this.updateState('active', e.target.checked);
     },
     handleRole: function(e) {
         this.updateState('user_role', e.target.value);

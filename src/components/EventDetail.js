@@ -43,6 +43,7 @@ var EventDetail = React.createClass({
         var self = this;
         var result = Person.permissions();
         result.done(function(user) {
+            user.role_rota = sessionStorage.getItem('role_rota');
             self.setState({user: user});
         });
     },
@@ -51,15 +52,15 @@ var EventDetail = React.createClass({
         if (!this.state.user) {
             return false;
         }
-        if (this.state.user.role === 'admin') {
+        if (this.state.user.role_rota === 'admin') {
             return true;
         }
         if (!this.props.params.id) {
             return false;
         }
         var eventId = parseInt(this.props.params.id);
-        for (var i=0; i < this.state.user.eventAdministrate.length; i++) {
-            if (this.state.user.eventAdministrate[i].event_id === eventId) {
+        for (var i=0; i < this.state.user.rota_permissions.length; i++) {
+            if (this.state.user.rota_permissions[i].event_id === eventId) {
                 return true;
             }
         }

@@ -20,7 +20,7 @@ var Person = {
     },
 
     update: function(person) {
-        return Ajax.put(this.url() + '/' + person.id, person);
+        return Ajax.put('/rota/person/' + person.user_id, person);
     },
 
     findById: function(personId) {

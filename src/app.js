@@ -56,7 +56,8 @@ Router.run(routes, function(Root) {
     // Get the API token and store in the browser session storage
     Token.get().done(function(response) {
         sessionStorage.setItem('token', response.token);
-        sessionStorage.setItem('role', response.role);
+        sessionStorage.setItem('role_rota', response.role_rota);
+        sessionStorage.setItem('role_music', response.role_music);
         sessionStorage.setItem('apiUrl', response.apiUrl);
         React.render(<Root/>, document.getElementById('app'));
     });

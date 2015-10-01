@@ -16,6 +16,16 @@ var EventDetailRota = React.createClass({
         }
     },
 
+    renderRunSheet: function(summary) {
+        if (summary.url) {
+            return (
+                <a href={summary.url}>
+                    Run Sheet on {moment(summary.on_date).format('DD/MM/YYYY')}
+                </a>
+            );
+        }
+    },
+
     render: function () {
         var summary = this.props.summary;
         var rota = this.props.rota;
@@ -43,6 +53,10 @@ var EventDetailRota = React.createClass({
                         <div>
                             <label>Notes</label>
                             <div>{summary.notes}</div>
+                        </div>
+                        <div>
+                            <label>Run Sheet</label>
+                            <div>{this.renderRunSheet(summary)}</div>
                         </div>
                         <table className="table table-striped">
                             <thead>

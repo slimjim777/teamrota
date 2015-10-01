@@ -11,7 +11,7 @@ var PeopleList = React.createClass({
     },
 
     isAdmin: function() {
-        if (sessionStorage.getItem('role') === 'admin') {
+        if (sessionStorage.getItem('role_rota') === 'admin') {
             return true;
         } else {
             return false;

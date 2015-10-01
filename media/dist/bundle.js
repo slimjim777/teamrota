@@ -116,6 +116,7 @@ var EventDetail = React.createClass({displayName: "EventDetail",
         var self = this;
         var result = Person.permissions();
         result.done(function(user) {
+            user.role_rota = sessionStorage.getItem('role_rota');
             self.setState({user: user});
         });
     },
@@ -124,15 +125,15 @@ var EventDetail = React.createClass({displayName: "EventDetail",
         if (!this.state.user) {
             return false;
         }
-        if (this.state.user.role === 'admin') {
+        if (this.state.user.role_rota === 'admin') {
             return true;
         }
         if (!this.props.params.id) {
             return false;
         }
         var eventId = parseInt(this.props.params.id);
-        for (var i=0; i < this.state.user.eventAdministrate.length; i++) {
-            if (this.state.user.eventAdministrate[i].event_id === eventId) {
+        for (var i=0; i < this.state.user.rota_permissions.length; i++) {
+            if (this.state.user.rota_permissions[i].event_id === eventId) {
                 return true;
             }
         }
@@ -393,6 +394,16 @@ var EventDetailRota = React.createClass({displayName: "EventDetailRota",
         }
     },
 
+    renderRunSheet: function(summary) {
+        if (summary.url) {
+            return (
+                React.createElement("a", {href: summary.url}, 
+                    "Run Sheet on ", moment(summary.on_date).format('DD/MM/YYYY')
+                )
+            );
+        }
+    },
+
     render: function () {
         var summary = this.props.summary;
         var rota = this.props.rota;
@@ -420,6 +431,10 @@ var EventDetailRota = React.createClass({displayName: "EventDetailRota",
                         React.createElement("div", null, 
                             React.createElement("label", null, "Notes"), 
                             React.createElement("div", null, summary.notes)
+                        ), 
+                        React.createElement("div", null, 
+                            React.createElement("label", null, "Run Sheet"), 
+                            React.createElement("div", null, this.renderRunSheet(summary))
                         ), 
                         React.createElement("table", {className: "table table-striped"}, 
                             React.createElement("thead", null, 
@@ -460,7 +475,7 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
 
     getInitialState: function() {
         var summary = this.props.summary;
-        return {focus: summary.focus, notes: summary.notes, rota: {}};
+        return {focus: summary.focus, notes: summary.notes, url: summary.url, rota: {}};
     },
 
     handleChangeFocus: function(e) {
@@ -469,7 +484,11 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
     },
     handleChangeNotes: function(e) {
         e.preventDefault();
-        this.setState({focus: event.target.value});
+        this.setState({notes: event.target.value});
+    },
+    handleChangeRunSheet: function(e) {
+        e.preventDefault();
+        this.setState({url: event.target.value});
     },
     handleChangeRota: function(e) {
         e.preventDefault();
@@ -484,7 +503,8 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
         e.preventDefault();
         var self = this;
 
-        var result = EventDate.updateRota(this.props.dateId, this.state.rota);
+        var result = EventDate.updateRota(
+            this.props.dateId, this.state.rota, this.state.focus, this.state.notes, this.state.url);
         result.done(function(data) {
             self.props.refreshData();
         });
@@ -541,6 +561,11 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
                             React.createElement("label", null, "Notes"), 
                             React.createElement("div", null, React.createElement("textarea", {name: "notes", className: "form-control", value: this.state.notes, 
                                            onChange: this.handleChangeNotes}))
+                        ), 
+                        React.createElement("div", null, 
+                            React.createElement("label", null, "Run Sheet"), 
+                            React.createElement("div", null, React.createElement("textarea", {name: "runsheet", className: "form-control", value: this.state.url, 
+                                           onChange: this.handleChangeRunSheet}))
                         ), 
                         React.createElement("table", {className: "table table-striped"}, 
                             React.createElement("thead", null, 
@@ -884,10 +909,10 @@ var PeopleEdit = React.createClass({displayName: "PeopleEdit",
         this.updateState('email', e.target.value);
     },
     handleGuest: function(e) {
-        this.updateState('guest', e.target.value);
+        this.updateState('guest', e.target.checked);
     },
     handleActive: function(e) {
-        this.updateState('active', e.target.value);
+        this.updateState('active', e.target.checked);
     },
     handleRole: function(e) {
         this.updateState('user_role', e.target.value);
@@ -1038,7 +1063,7 @@ var PeopleList = React.createClass({displayName: "PeopleList",
     },
 
     isAdmin: function() {
-        if (sessionStorage.getItem('role') === 'admin') {
+        if (sessionStorage.getItem('role_rota') === 'admin') {
             return true;
         } else {
             return false;
@@ -1275,7 +1300,8 @@ Router.run(routes, function(Root) {
     // Get the API token and store in the browser session storage
     Token.get().done(function(response) {
         sessionStorage.setItem('token', response.token);
-        sessionStorage.setItem('role', response.role);
+        sessionStorage.setItem('role_rota', response.role_rota);
+        sessionStorage.setItem('role_music', response.role_music);
         sessionStorage.setItem('apiUrl', response.apiUrl);
         React.render(React.createElement(Root, null), document.getElementById('app'));
     });
@@ -1372,9 +1398,24 @@ var EventDate = {
         return Ajax.get(this.url() + '/' + modelId);
     },
 
-    updateRota: function(modelId, rolePerson) {
+    updateRota: function(modelId, rolePerson, focus, notes, url) {
         // Expecting dictionary: {role_id: person_id}
-        return Ajax.post(this.url() + '/' + modelId + '/rota', rolePerson);
+        // Iterate through the rolePerson object
+        for (var key in rolePerson) {
+            if (rolePerson.hasOwnProperty(key)) {
+                var data = {
+                    roleId: key,
+                    personId: rolePerson[key]
+                }
+
+                Ajax.post(this.url() + '/' + modelId + '/rota', data);
+            }
+        }
+
+        var eventDate = {
+            focus: focus, notes: notes, url: url
+        };
+        return Ajax.put(this.url() + '/' + modelId + '/eventdate', eventDate);
     }
 };
 
@@ -1402,7 +1443,7 @@ var Person = {
     },
 
     update: function(person) {
-        return Ajax.put(this.url() + '/' + person.id, person);
+        return Ajax.put('/rota/person/' + person.user_id, person);
     },
 
     findById: function(personId) {

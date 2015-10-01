@@ -8,7 +8,7 @@ var EventDetailRotaEdit = React.createClass({
 
     getInitialState: function() {
         var summary = this.props.summary;
-        return {focus: summary.focus, notes: summary.notes, rota: {}};
+        return {focus: summary.focus, notes: summary.notes, url: summary.url, rota: {}};
     },
 
     handleChangeFocus: function(e) {
@@ -17,7 +17,11 @@ var EventDetailRotaEdit = React.createClass({
     },
     handleChangeNotes: function(e) {
         e.preventDefault();
-        this.setState({focus: event.target.value});
+        this.setState({notes: event.target.value});
+    },
+    handleChangeRunSheet: function(e) {
+        e.preventDefault();
+        this.setState({url: event.target.value});
     },
     handleChangeRota: function(e) {
         e.preventDefault();
@@ -32,7 +36,8 @@ var EventDetailRotaEdit = React.createClass({
         e.preventDefault();
         var self = this;
 
-        var result = EventDate.updateRota(this.props.dateId, this.state.rota);
+        var result = EventDate.updateRota(
+            this.props.dateId, this.state.rota, this.state.focus, this.state.notes, this.state.url);
         result.done(function(data) {
             self.props.refreshData();
         });
@@ -89,6 +94,11 @@ var EventDetailRotaEdit = React.createClass({
                             <label>Notes</label>
                             <div><textarea name="notes" className="form-control" value={this.state.notes}
                                            onChange={this.handleChangeNotes} /></div>
+                        </div>
+                        <div>
+                            <label>Run Sheet</label>
+                            <div><textarea name="runsheet" className="form-control" value={this.state.url}
+                                           onChange={this.handleChangeRunSheet} /></div>
                         </div>
                         <table className="table table-striped">
                             <thead>
