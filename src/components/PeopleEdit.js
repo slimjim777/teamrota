@@ -44,6 +44,7 @@ var PeopleEdit = React.createClass({
     },
     handleRole: function(e) {
         this.updateState('user_role', e.target.value);
+        this.updateState('role_rota', e.target.value);
     },
 
     handleSubmit: function(e) {
@@ -90,7 +91,7 @@ var PeopleEdit = React.createClass({
                             </div>
                             <div className="form-group">
                                 <label>Permissions</label>
-                                <select name="role" defaultValue={this.state.person.role} onChange={this.handleRole}>
+                                <select name="role" value={this.state.person.user_role} onChange={this.handleRole}>
                                     <option value="standard">Standard</option>
                                     <option value="admin">Admin</option>
                                 </select>

@@ -916,6 +916,7 @@ var PeopleEdit = React.createClass({displayName: "PeopleEdit",
     },
     handleRole: function(e) {
         this.updateState('user_role', e.target.value);
+        this.updateState('role_rota', e.target.value);
     },
 
     handleSubmit: function(e) {
@@ -962,7 +963,7 @@ var PeopleEdit = React.createClass({displayName: "PeopleEdit",
                             ), 
                             React.createElement("div", {className: "form-group"}, 
                                 React.createElement("label", null, "Permissions"), 
-                                React.createElement("select", {name: "role", defaultValue: this.state.person.role, onChange: this.handleRole}, 
+                                React.createElement("select", {name: "role", value: this.state.person.user_role, onChange: this.handleRole}, 
                                     React.createElement("option", {value: "standard"}, "Standard"), 
                                     React.createElement("option", {value: "admin"}, "Admin")
                                 )
