@@ -10,7 +10,6 @@ var requests = require('then-request');
 
 // GET the /rota URL
 router.get('/', ensureAuthenticated, function(req, res, next) {
-    //res.sendFile(path.normalize(__dirname + '/../index.html'));
     res.render('rota', {API_URL: process.env.API_URL});
 });
 

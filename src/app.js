@@ -9,6 +9,7 @@ var People = require('./components/People');
 var PeopleEdit = require('./components/PeopleEdit');
 var Events = require('./components/Events');
 var EventDetail = require('./components/EventDetail');
+var EventOverview = require('./components/EventOverview');
 
 var Navbar = require('react-bootstrap').Navbar;
 var Nav = require('react-bootstrap').Nav;
@@ -47,6 +48,7 @@ var routes = (
         <Route path="people/:id/edit" handler={PeopleEdit}/>
         <Route path="events" handler={Events} />
         <Route path="events/:id" handler={EventDetail} />
+        <Route path="events/:id/overview" handler={EventOverview} />
         <Route path="events/:id/:dateId" handler={EventDetail} />
     </Route>
 );

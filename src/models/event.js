@@ -21,6 +21,14 @@ var EventModel = {
 
     dates: function(modelId) {
         return Ajax.get(this.url() + '/' + modelId + '/dates');
+    },
+
+    roles: function(modelId) {
+        return Ajax.get(this.url() + '/' + modelId + '/roles');
+    },
+
+    rota: function(modelId, fromDate) {
+        return Ajax.get(this.url() + '/' + modelId + '/rota/' + fromDate );
     }
 };
 

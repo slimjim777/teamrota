@@ -1,6 +1,5 @@
 'use strict';
 var React = require('react');
-var Router = require('react-router');
 var EventModel = require('../models/event');
 var Person = require('../models/person');
 var EventDate = require('../models/eventdate');
@@ -136,7 +135,7 @@ var EventDetail = React.createClass({
         return (
             <div id="main" className="container-fluid" role="main">
                 <h2 className="heading center">{model.name}</h2>
-                <h4 className="center">Overview</h4>
+                <h4 className="center"><a href={'#/events/'.concat(model.id, '/overview')}>Overview</a></h4>
 
                 <div className="col-md-4 col-sm-4 col-xs-12">
                     <EventDetailDates eventDates={this.state.dates} canAdministrate={this.canAdministrate()}

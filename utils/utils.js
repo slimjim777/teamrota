@@ -140,9 +140,7 @@ var utils = {
             json: user
         };
 
-        requests('POST', process.env.API_URL + '/api/people/me', options).then(function(response) {
-            console.log('updated rota person');
-        });
+        requests('POST', process.env.API_URL + '/api/people/me', options).then(function(response) {});
     }
  };
 
