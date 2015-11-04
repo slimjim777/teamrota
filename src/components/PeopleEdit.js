@@ -15,8 +15,8 @@ var PeopleEdit = React.createClass({
         var personId = this.props.params.id;
 
         // Get the person details
-        var result = Person.findById(personId);
-        result.done(function(data) {
+        Person.findById(personId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({person: data});
         });
     },
@@ -49,7 +49,7 @@ var PeopleEdit = React.createClass({
 
     handleSubmit: function(e) {
         e.preventDefault();
-        Person.update(this.state.person).done(function(response) {
+        Person.update(this.state.person).then(function(response) {
             window.location = '#/people';
         });
     },

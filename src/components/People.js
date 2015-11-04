@@ -48,8 +48,8 @@ var People = React.createClass({
     getPeople: function() {
         var self = this;
         self.setState({peopleLoading: true});
-        var result = Person.all();
-        result.done(function(data) {
+        Person.all().then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ people: data.people, peopleLoading: false });
             self.handleFilterChange(null, null, null, 'active');
         });

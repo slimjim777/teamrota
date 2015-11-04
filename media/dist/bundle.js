@@ -86,7 +86,7 @@ var EventDetailDates = require('../components/EventDetailDates');
 var EventDetail = React.createClass({displayName: "EventDetail",
 
     getInitialState: function() {
-        return ({eventLoading: false, model: {}, dateId: null, eventDate: {}, dateSummary: {}, rota: [], roles: [],
+        return ({eventLoading: false, model: {}, onDate: null, eventDate: {}, dateSummary: {}, rota: [], roles: [],
             eventDatesLoading: false, dates: [], user: null, isEditing: false});
     },
 
@@ -101,9 +101,9 @@ var EventDetail = React.createClass({displayName: "EventDetail",
         this.getEvent(modelId);
         this.getEventDates(modelId);
 
-        var dateId = this.props.params.dateId;
-        if (dateId) {
-            this.getEventDate(dateId);
+        var onDate = this.props.params.onDate;
+        if (onDate) {
+            this.getEventDate(modelId, onDate);
         }
     },
 
@@ -113,8 +113,8 @@ var EventDetail = React.createClass({displayName: "EventDetail",
 
     getPermissions: function () {
         var self = this;
-        var result = Person.permissions();
-        result.done(function(user) {
+        Person.permissions().then(function(response) {
+            var user = JSON.parse(response.body);
             user.role_rota = sessionStorage.getItem('role_rota');
             self.setState({user: user});
         });
@@ -142,8 +142,8 @@ var EventDetail = React.createClass({displayName: "EventDetail",
     getEvent: function(modelId) {
         var self = this;
         self.setState({eventLoading: true });
-        var result = EventModel.findById(modelId);
-        result.done(function(data) {
+        EventModel.findById(modelId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({model: data.model, eventLoading: false });
         });
     },
@@ -151,29 +151,31 @@ var EventDetail = React.createClass({displayName: "EventDetail",
     getEventDates: function(modelId) {
         var self = this;
         self.setState({eventDatesLoading: true });
-        var result = EventModel.dates(modelId);
-        result.done(function(data) {
-            if ((!self.state.dateId) && (data.dates.length > 0)) {
+        EventModel.dates(modelId).then(function(response) {
+            var data = JSON.parse(response.body);
+            if ((!self.state.onDate) && (data.dates.length > 0)) {
                 var firstDate = data.dates[0];
-                self.getEventDate(firstDate.id);
+                self.getEventDate(modelId, firstDate.on_date);
             }
             self.setState({dates: data.dates, eventDatesLoading: false});
         });
     },
 
-    getEventDate: function(dateId) {
+    getEventDate: function(modelId, onDate) {
+        console.log('getEventDate');
         var self = this;
-        self.setState({eventDateLoading: true, dateId: parseInt(dateId)});
-        var result = EventDate.findById(dateId);
-        result.done(function(data) {
+        self.setState({eventDateLoading: true, onDate: onDate});
+        EventDate.findByDate(modelId, onDate).then(function(response) {
+            var data = JSON.parse(response.body);
+            console.log(data);
             self.setState({
-                dateSummary: data.summary, rota: data.rota, roles: data.roles, dateId: dateId,
+                dateSummary: data.summary, rota: data.rota, roles: data.roles, onDate: onDate,
                 eventDateLoading: false });
         });
     },
 
-    handleDateChange: function(e, eventId, dateId) {
-        this.getEventDate(dateId);
+    handleDateChange: function(e, eventId, onDate) {
+        this.getEventDate(eventId, onDate);
     },
 
     handleToggleEdit: function(e) {
@@ -185,19 +187,19 @@ var EventDetail = React.createClass({displayName: "EventDetail",
 
     refreshData: function() {
         this.setState({isEditing: false});
-        this.getEventDate(this.state.dateId);
+        this.getEventDate(this.state.model.id, this.state.onDate);
     },
 
     renderRota: function() {
         if (this.state.isEditing) {
             return (
-                React.createElement(EventDetailRotaEdit, {dateId: this.state.dateId, summary: this.state.dateSummary, rota: this.state.rota, 
+                React.createElement(EventDetailRotaEdit, {onDate: this.state.onDate, summary: this.state.dateSummary, rota: this.state.rota, 
                                  canAdministrate: this.canAdministrate(), refreshData: this.refreshData, 
                                      toggleEdit: this.handleToggleEdit, roles: this.state.roles})
             );
         } else {
             return (
-                React.createElement(EventDetailRota, {dateId: this.state.dateId, summary: this.state.dateSummary, rota: this.state.rota, 
+                React.createElement(EventDetailRota, {onDate: this.state.onDate, summary: this.state.dateSummary, rota: this.state.rota, 
                                  canAdministrate: this.canAdministrate(), toggleEdit: this.handleToggleEdit})
             );
         }
@@ -212,7 +214,7 @@ var EventDetail = React.createClass({displayName: "EventDetail",
 
                 React.createElement("div", {className: "col-md-4 col-sm-4 col-xs-12"}, 
                     React.createElement(EventDetailDates, {eventDates: this.state.dates, canAdministrate: this.canAdministrate(), 
-                                      dateId: this.state.dateId, 
+                                      onDate: this.state.onDate, 
                                       datesLoading: this.state.eventDatesLoading}), 
                     React.createElement(EventDetailPanel, {model: model})
                 ), 
@@ -253,8 +255,8 @@ var EventDetailDates = React.createClass({displayName: "EventDetailDates",
         }
     },
 
-    handleClick: function(eventId, dateId) {
-        $(document).trigger('dateTransition', [eventId, dateId]);
+    handleClick: function(eventId, onDate) {
+        $(document).trigger('dateTransition', [eventId, onDate]);
     },
 
     render: function() {
@@ -264,21 +266,21 @@ var EventDetailDates = React.createClass({displayName: "EventDetailDates",
                 React.createElement("div", {className: "panel-heading"}, 
                     React.createElement("h3", {className: "panel-title"}, 
                         this.renderSpinner(), 
-                        "Dates ", 
-                        this.renderActions()
+                        "Dates"
                     )
                 ), 
                 React.createElement("div", {className: "panel-body"}, 
                     React.createElement("div", null, 
                         this.props.eventDates.map(function(ed) {
-                            var link = '#/events/1/' + ed.id;
+                            var link = '#/events/1/' + ed.on_date.substring(0, 10);
                             var buttonClass = 'btn btn-primary btn-sm';
-                            if (self.props.dateId === ed.id) {
+                            if (self.props.onDate === ed.on_date.substring(0, 10)) {
                                 buttonClass += ' active';
                             }
                             return (
                                 React.createElement("a", {href: link, key: ed.id, className: buttonClass, title: "View Rota", 
-                                   onClick: self.handleClick.bind(self, ed.event_id, ed.id)}, 
+                                   onClick: self.handleClick.bind(
+                                        self, ed.event_id, moment(ed.on_date).format('YYYY-MM-DD'))}, 
                                     moment(ed.on_date).format('DD/MM/YYYY')
                                 )
                             );
@@ -407,7 +409,7 @@ var EventDetailRota = React.createClass({displayName: "EventDetailRota",
         var summary = this.props.summary;
         var rota = this.props.rota;
 
-        if (!this.props.dateId) {
+        if (!this.props.onDate) {
             return (
                 React.createElement("div", null, "Select a date to display the rota.")
             );
@@ -502,9 +504,9 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
         e.preventDefault();
         var self = this;
 
-        var result = EventDate.updateRota(
-            this.props.dateId, this.state.rota, this.state.focus, this.state.notes, this.state.url);
-        result.done(function(data) {
+        EventDate.updateRota(
+            this.props.dateId, this.state.rota, this.state.focus, this.state.notes, this.state.url).then(
+                function(data) {
             self.props.refreshData();
         });
     },
@@ -535,7 +537,7 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
         var roles = this.props.roles;
         var self = this;
 
-        if (!this.props.dateId) {
+        if (!this.props.onDate) {
             return (
                 React.createElement("div", null, "Select a date to display the rota.")
             );
@@ -628,6 +630,7 @@ module.exports = EventList;
 'use strict';
 var React = require('react');
 var EventModel = require('../models/event');
+var EventDate = require('../models/eventdate');
 var Person = require('../models/person');
 var moment = require('moment');
 
@@ -637,53 +640,68 @@ var STANDARD_FORMAT = 'YYYY-MM-DD';
 var EventOverview = React.createClass({displayName: "EventOverview",
 
     getInitialState: function() {
-        return ({model: {}, roles: [], rota: [], fromDate: moment().format(STANDARD_FORMAT), eventLoading: false});
+        return ({model: {}, roles: [], rota: [], fromDate: moment().format(STANDARD_FORMAT), eventLoading: false,
+            editing: null, editRoles: [], editValues: {}});
     },
 
     componentDidMount: function() {
-        // Get the user permissions
-        this.getPermissions();
-
         // Get the event
         var modelId = this.props.params.id;
         this.getEvent(modelId);
         this.getEventRoles(modelId);
         this.getEventRota(modelId);
+
+        // Get the user permissions
+        this.getPermissions(modelId);
     },
 
     getEvent: function(modelId) {
         var self = this;
         self.setState({eventLoading: true });
-        var result = EventModel.findById(modelId);
-        result.done(function(data) {
+        EventModel.findById(modelId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({model: data.model, eventLoading: false });
         });
     },
 
     getEventRoles: function(modelId) {
         var self = this;
-        var result = EventModel.roles(modelId);
-        result.done(function(data) {
+        EventModel.roles(modelId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({roles: data.roles});
         });
     },
 
     getEventRota: function(modelId) {
         var self = this;
-        var result = EventModel.rota(modelId, this.state.fromDate);
-        result.done(function(data) {
-            console.log(data.rota);
+        EventModel.rota(modelId, this.state.fromDate).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({rota: data.rota});
         });
     },
 
-    getPermissions: function () {
+    getPermissions: function (modelId) {
         var self = this;
-        var result = Person.permissions();
-        result.done(function(user) {
+        Person.permissions().then(function(response) {
+            var user = JSON.parse(response.body);
             user.role_rota = sessionStorage.getItem('role_rota');
-            self.setState({user: user});
+            self.setState({user: user, canAdministrate: self.canAdministrate(modelId, user)});
         });
+    },
+
+    canAdministrate: function(eventId, user) {
+        if (user.role_rota == 'admin') {
+            return true;
+        } else {
+            var events = this.state.rota_permissions.filter(function(permission) {
+                return permission.event_id === eventId;
+            });
+            if (events.length > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     },
 
     handleChangeFromDate: function(e) {
@@ -693,11 +711,79 @@ var EventOverview = React.createClass({displayName: "EventOverview",
 
     handleClickEdit: function(e) {
         e.preventDefault();
+        if (!this.state.canAdministrate) {
+            return;
+        }
+
+        var self = this;
         var onDate = e.target.getAttribute('data-key');
+        //var eventDateId = parseInt(e.target.getAttribute('data-date_id') | 0);
+
+        if (!onDate) {
+            self.setState({editing: null, editValues: {}});
+            return;
+        }
+
+        // Get the roles and away status for this date
+        EventModel.date(this.state.model.id, onDate).then(function(response) {
+            var data = JSON.parse(response.body);
+            console.log(data);
+            self.setState({editing: onDate, editRoles: data.roles,
+                editValues: {focus: data.summary.focus, notes: data.summary.notes, url: data.summary.url}});
+        });
     },
 
     handleClickDateChange: function() {
         this.getEventRota(this.state.model.id);
+    },
+
+    handleChangeFocus: function(e) {
+        var values = this.state.editValues;
+        values.focus = e.target.value;
+        this.setState({editValues: values});
+    },
+    handleChangeNotes: function(e) {
+        var values = this.state.editValues;
+        values.notes = e.target.value;
+        this.setState({editValues: values});
+    },
+    handleChangeURL: function(e) {
+        var values = this.state.editValues;
+        values.url = e.target.value;
+        this.setState({editValues: values});
+    },
+
+    handleRoleSelection: function(e) {
+        var roleId = parseInt(e.target.getAttribute('data-role'));
+        var personId = parseInt(e.target.value)
+
+        var roles = this.state.editRoles.map(function(r) {
+            if (r.roleId === roleId) {
+                r.personId = personId;
+            }
+            return r;
+        });
+
+        var editValues = this.state.editValues;
+        editValues[roleId] = personId;
+
+        console.log(editValues);
+        console.log(roles);
+        console.log(personId);
+        //console.log(this.state.editRoles);
+        this.setState({editRoles: roles, editValues: editValues});
+
+    },
+
+    handleClickSave: function() {
+        var self = this;
+        console.log('Save');
+        console.log(this.state.editValues);
+        var result = EventDate.createRota(this.state.model.id, this.state.editing, this.state.editValues,
+            this.state.editValues.focus, this.state.editValues.notes, this.state.editValues.url).then(
+            function(response) {
+                self.setState({editing: null, editValues: {}}, self.getEventRota(self.state.model.id));
+            });
     },
 
     render: function() {
@@ -730,17 +816,73 @@ var EventOverview = React.createClass({displayName: "EventOverview",
                         ), 
                         React.createElement("tbody", null, 
                         this.state.rota.map(function(r) {
-                            return (
-                                React.createElement("tr", {key: r.on_date}, 
-                                    React.createElement("td", null, React.createElement("a", {href: "", onClick: self.handleClickEdit, "data-key": r.on_date}, moment(r.on_date).format('DD MMM'))), 
-                                    React.createElement("td", null, r.focus), React.createElement("td", null, r.notes), React.createElement("td", null, r.url), 
-                                    self.state.roles.map(function(rl) {
-                                        var role = r.roles[rl.id];
-                                        return React.createElement("td", {key: rl.id}, React.createElement("a", {href: '#/person/' + role.person_id}, role.firstname, " ", role.lastname));
-                                    }), 
-                                    React.createElement("td", null, React.createElement("a", {href: "", onClick: self.handleClickEdit, "data-key": r.on_date}, moment(r.on_date).format('DD MMM')))
-                                )
-                            );
+                            if (r.on_date === self.state.editing) {
+                                return (
+                                    React.createElement("tr", {key: r.on_date}, 
+                                        React.createElement("td", null, 
+                                            React.createElement("button", {className: "btn", onClick: self.handleClickSave}, "Save"), 
+                                            React.createElement("a", {href: "", onClick: self.handleClickEdit}, "Cancel")
+                                        ), 
+                                        React.createElement("td", null, 
+                                            React.createElement("input", {value: self.state.editValues.focus, placeholder: "focus", 
+                                                   onChange: self.handleChangeFocus})
+                                        ), 
+                                        React.createElement("td", null, 
+                                            React.createElement("input", {value: self.state.editValues.notes, placeholder: "notes", 
+                                                   onChange: self.handleChangeNotes})
+                                        ), 
+                                        React.createElement("td", null, 
+                                            React.createElement("input", {value: self.state.editValues.url, placeholder: "run sheet URL", 
+                                                   onChange: self.handleChangeURL})
+                                        ), 
+                                        self.state.editRoles.map(function (role) {
+                                            return (
+                                                React.createElement("td", {key: role.roleId}, 
+                                                    React.createElement("select", {value: role.personId, onChange: self.handleRoleSelection, 
+                                                            "data-role": role.roleId}, 
+                                                        React.createElement("option", {value: "0"}), 
+                                                    role.roles.map(function(r){
+                                                        return (
+                                                            React.createElement("option", {key: r.person_id, value: r.person_id}, 
+                                                                r.firstname, " ", r.lastname
+                                                            )
+                                                        );
+                                                    })
+                                                    )
+                                                )
+                                            );
+                                        })
+                                    )
+                                );
+                            } else {
+                                return (
+                                    React.createElement("tr", {key: r.on_date}, 
+                                        React.createElement("td", null, 
+                                            self.state.canAdministrate ?
+                                            React.createElement("a", {href: "", onClick: self.handleClickEdit, "data-key": r.on_date, 
+                                               "data-date_id": r.event_date_id}, 
+                                                moment(r.on_date).format('DD MMM')
+                                            )
+                                            : moment(r.on_date).format('DD MMM')
+                                        ), 
+                                        React.createElement("td", null, r.focus), 
+                                        React.createElement("td", null, r.notes), 
+                                        React.createElement("td", null, r.url), 
+                                        self.state.roles.map(function (rl) {
+                                            var role = r.roles[rl.id];
+                                            return (
+                                                React.createElement("td", {key: rl.id}, 
+                                                    React.createElement("a", {href: '#/person/' + role.person_id}, 
+                                                        role.firstname, " ", role.lastname
+                                                    )
+                                                )
+                                            );
+                                        }), 
+                                        React.createElement("td", null, React.createElement("a", {href: "", onClick: self.handleClickEdit, 
+                                               "data-key": r.on_date}, moment(r.on_date).format('DD MMM')))
+                                    )
+                                );
+                            }
                         })
 
                         )
@@ -752,7 +894,7 @@ var EventOverview = React.createClass({displayName: "EventOverview",
 });
 
 module.exports = EventOverview;
-},{"../models/event":19,"../models/person":21,"moment":24,"react":"CwoHg3"}],9:[function(require,module,exports){
+},{"../models/event":19,"../models/eventdate":20,"../models/person":21,"moment":24,"react":"CwoHg3"}],9:[function(require,module,exports){
 'use strict';
 var React = require('react');
 var EventModel = require('../models/event');
@@ -775,8 +917,8 @@ var Events = React.createClass({displayName: "Events",
     getEvents: function() {
         var self = this;
         self.setState({eventsLoading: true});
-        var result = EventModel.all();
-        result.done(function(data) {
+        EventModel.all().then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ events: data.events, eventsLoading: false });
         });
     },
@@ -819,8 +961,8 @@ var MyRota = React.createClass({displayName: "MyRota",
         var personId = this.props.params.id;
 
         // Get the person details
-        var result = Person.findById(personId);
-        result.done(function(data) {
+        Person.findById(personId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ person: data });
             self.getRota(data.id, RANGE);
             self.getAwayDates(data.id, RANGE);
@@ -831,8 +973,8 @@ var MyRota = React.createClass({displayName: "MyRota",
     getRota: function(personId, range) {
         var self = this;
         self.setState({rotaIsLoading: true});
-        var result = Person.rota(personId, range);
-        result.done(function(data) {
+        Person.rota(personId, range).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ rota: data.rota, rotaIsLoading: false });
         });
     },
@@ -840,8 +982,8 @@ var MyRota = React.createClass({displayName: "MyRota",
     getAwayDates: function(personId, range) {
         var self = this;
         self.setState({awayIsLoading: true});
-        var result = Person.awayDates(personId, range);
-        result.done(function(data) {
+        Person.awayDates(personId, range).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ awayDates: data.awayDates, awayIsLoading: false });
         });
     },
@@ -976,8 +1118,8 @@ var People = React.createClass({displayName: "People",
     getPeople: function() {
         var self = this;
         self.setState({peopleLoading: true});
-        var result = Person.all();
-        result.done(function(data) {
+        Person.all().then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ people: data.people, peopleLoading: false });
             self.handleFilterChange(null, null, null, 'active');
         });
@@ -1014,8 +1156,8 @@ var PeopleEdit = React.createClass({displayName: "PeopleEdit",
         var personId = this.props.params.id;
 
         // Get the person details
-        var result = Person.findById(personId);
-        result.done(function(data) {
+        Person.findById(personId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({person: data});
         });
     },
@@ -1048,7 +1190,7 @@ var PeopleEdit = React.createClass({displayName: "PeopleEdit",
 
     handleSubmit: function(e) {
         e.preventDefault();
-        Person.update(this.state.person).done(function(response) {
+        Person.update(this.state.person).then(function(response) {
             window.location = '#/people';
         });
     },
@@ -1316,7 +1458,7 @@ var Rota = React.createClass({displayName: "Rota",
                     React.createElement("tbody", null, 
                     this.props.rota.map(function(rota) {
                         index += 1;
-                        var eventLink = '#/events/' + rota.eventId + '/' + rota.eventDateId;
+                        var eventLink = '#/events/' + rota.eventId + '/' + rota.eventDate.substring(0,10);
                         return (
                             React.createElement("tr", {key: index}, 
                                 React.createElement("td", null, moment(rota.eventDate).format('DD/MM/YYYY')), 
@@ -1421,7 +1563,7 @@ var routes = (
         React.createElement(Route, {path: "events", handler: Events}), 
         React.createElement(Route, {path: "events/:id", handler: EventDetail}), 
         React.createElement(Route, {path: "events/:id/overview", handler: EventOverview}), 
-        React.createElement(Route, {path: "events/:id/:dateId", handler: EventDetail})
+        React.createElement(Route, {path: "events/:id/:onDate", handler: EventDetail})
     )
 );
 
@@ -1440,37 +1582,34 @@ Router.run(routes, function(Root) {
 },{"./components/EventDetail":2,"./components/EventOverview":8,"./components/Events":9,"./components/MyRota":10,"./components/People":11,"./components/PeopleEdit":12,"./models/Token":18,"react":"CwoHg3","react-bootstrap":93,"react-router":194}],17:[function(require,module,exports){
 'use strict';
 var $ = require('jquery');
+var request =require('then-request');
 
 
 // Wrapper for API calls to add the authorization header
 var Ajax = {
     get: function(url) {
-        return $.ajax(url, {
+        return request('GET', url, {
             headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')}
         });
     },
 
     post: function(url, data) {
-        return $.ajax(url, {
+        return request('POST', url, {
             headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')},
-            dataType: 'json',
-            data: data,
-            method: 'POST'
+            json: data
         });
     },
 
     put: function(url, data) {
-        return $.ajax(url, {
+        return request('PUT', url, {
             headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')},
-            dataType: 'json',
-            data: data,
-            method: 'PUT'
+            json: data
         });
     }
 };
 
 module.exports = Ajax;
-},{"jquery":23}],18:[function(require,module,exports){
+},{"jquery":23,"then-request":365}],18:[function(require,module,exports){
 'use strict';
 var $ = require('jquery');
 
@@ -1504,6 +1643,10 @@ var EventModel = {
         return Ajax.get(this.url() + '/' + modelId);
     },
 
+    date: function(modelId, onDate) {
+        return Ajax.get(this.url() + '/' + modelId + '/date/' + onDate);
+    },
+
     dates: function(modelId) {
         return Ajax.get(this.url() + '/' + modelId + '/dates');
     },
@@ -1521,6 +1664,7 @@ module.exports = EventModel;
 },{"./Ajax":17}],20:[function(require,module,exports){
 'use strict';
 var Ajax = require('./Ajax');
+var EventModel = require('./event');
 
 
 var EventDate = {
@@ -1534,6 +1678,10 @@ var EventDate = {
 
     findById: function(modelId) {
         return Ajax.get(this.url() + '/' + modelId);
+    },
+
+    findByDate: function(modelId, onDate) {
+        return EventModel.date(modelId, onDate);
     },
 
     updateRota: function(modelId, rolePerson, focus, notes, url) {
@@ -1554,11 +1702,38 @@ var EventDate = {
             focus: focus, notes: notes, url: url
         };
         return Ajax.put(this.url() + '/' + modelId + '/eventdate', eventDate);
+    },
+
+    createRota: function(eventId, onDate, rolePerson, focus, notes, url) {
+        // Expecting dictionary: {role_id: person_id}
+        // Iterate through the rolePerson object
+        var rota = [];
+        for (var key in rolePerson) {
+            if (rolePerson.hasOwnProperty(key)) {
+                var data = {
+                    roleId: key,
+                    personId: rolePerson[key]
+                }
+                if ((key !== 'focus') && (key !== 'notes') && (key !== 'url')) {
+                    rota.push(data);
+                }
+            }
+        }
+
+        var eventDate = {
+            eventId: eventId, onDate: onDate, focus: focus, notes: notes, url: url, rota: rota
+        };
+        console.log(eventDate);
+        return Ajax.post(this.url(), eventDate);
+    },
+
+    roles: function(modelId) {
+        return Ajax.post(this.url() + '/' + modelId + '/roles', {});
     }
 };
 
 module.exports = EventDate;
-},{"./Ajax":17}],21:[function(require,module,exports){
+},{"./Ajax":17,"./event":19}],21:[function(require,module,exports){
 'use strict';
 var Ajax = require('./Ajax');
 
@@ -47634,4 +47809,787 @@ module.exports = require('./lib/React');
 
 },{"./lib/React":236}],"react":[function(require,module,exports){
 module.exports=require('CwoHg3');
+},{}],365:[function(require,module,exports){
+'use strict';
+
+var Promise = require('promise');
+var Response = require('http-response-object');
+var handleQs = require('./lib/handle-qs.js');
+
+module.exports = doRequest;
+function doRequest(method, url, options, callback) {
+  var result = new Promise(function (resolve, reject) {
+    var xhr = new window.XMLHttpRequest();
+
+    // check types of arguments
+
+    if (typeof method !== 'string') {
+      throw new TypeError('The method must be a string.');
+    }
+    if (typeof url !== 'string') {
+      throw new TypeError('The URL/path must be a string.');
+    }
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (options === null || options === undefined) {
+      options = {};
+    }
+    if (typeof options !== 'object') {
+      throw new TypeError('Options must be an object (or null).');
+    }
+    if (typeof callback !== 'function') {
+      callback = undefined;
+    }
+
+    method = method.toUpperCase();
+    options.headers = options.headers || {};
+
+
+    function attempt(n) {
+      doRequest(method, url, {
+        qs: options.qs,
+        headers: options.headers,
+        timeout: options.timeout
+      }).nodeify(function (err, res) {
+        var retry = err || res.statusCode >= 400;
+        if (typeof options.retry === 'function') {
+          retry = options.retry(err, res, n + 1);
+        }
+        if (n >= (options.maxRetries | 5)) {
+          retry = false;
+        }
+        if (retry) {
+          var delay = options.retryDelay;
+          if (typeof options.retryDelay === 'function') {
+            delay = options.retryDelay(err, res, n + 1);
+          }
+          delay = delay || 200;
+          setTimeout(function () {
+            attempt(n + 1);
+          }, delay);
+        } else {
+          if (err) reject(err);
+          else resolve(res);
+        }
+      });
+    }
+    if (options.retry && method === 'GET') {
+      return attempt(0);
+    }
+
+    // handle cross domain
+
+    var match;
+    var crossDomain = !!((match = /^([\w-]+:)?\/\/([^\/]+)/.exec(options.uri)) && (match[2] != window.location.host));
+    if (!crossDomain) options.headers['X-Requested-With'] = 'XMLHttpRequest';
+
+    // handle query string
+    if (options.qs) {
+      url = handleQs(url, options.qs);
+    }
+
+    // handle json body
+    if (options.json) {
+      options.body = JSON.stringify(options.json);
+      options.headers['Content-Type'] = 'application/json';
+    }
+
+    if (options.timeout) {
+      xhr.timeout = options.timeout;
+      var start = Date.now();
+      xhr.ontimeout = function () {
+        var duration = Date.now() - start;
+        var err = new Error('Request timed out after ' + duration + 'ms');
+        err.timeout = true;
+        err.duration = duration;
+        reject(err);
+      };
+    }
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        var headers = {};
+        xhr.getAllResponseHeaders().split('\r\n').forEach(function (header) {
+          var h = header.split(':');
+          if (h.length > 1) {
+            headers[h[0].toLowerCase()] = h.slice(1).join(':').trim();
+          }
+        });
+        var res = new Response(xhr.status, headers, xhr.responseText);
+        res.url = url;
+        resolve(res);
+      }
+    };
+
+    // method, url, async
+    xhr.open(method, url, true);
+
+    for (var name in options.headers) {
+      xhr.setRequestHeader(name, options.headers[name]);
+    }
+
+    // avoid sending empty string (#319)
+    xhr.send(options.body ? options.body : null);
+  });
+  result.getBody = function () {
+    return result.then(function (res) { return res.getBody(); });
+  };
+  return result.nodeify(callback);
+}
+
+},{"./lib/handle-qs.js":366,"http-response-object":367,"promise":368}],366:[function(require,module,exports){
+'use strict';
+
+var parse = require('qs').parse;
+var stringify = require('qs').stringify;
+
+module.exports = handleQs;
+function handleQs(url, query) {
+  url = url.split('?');
+  var start = url[0];
+  var qs = (url[1] || '').split('#')[0];
+  var end = url[1] && url[1].split('#').length > 1 ? '#' + url[1].split('#')[1] : '';
+
+  var baseQs = parse(qs);
+  for (var i in query) {
+    baseQs[i] = query[i];
+  }
+  qs = stringify(baseQs);
+  if (qs !== '') {
+    qs = '?' + qs;
+  }
+  return start + qs + end;
+}
+
+},{"qs":374}],367:[function(require,module,exports){
+'use strict';
+
+module.exports = Response;
+
+/**
+ * A response from a web request
+ *
+ * @param {Number} statusCode
+ * @param {Object} headers
+ * @param {Buffer} body
+ */
+function Response(statusCode, headers, body) {
+  if (typeof statusCode !== 'number') {
+    throw new TypeError('statusCode must be a number but was ' + (typeof statusCode));
+  }
+  if (headers === null) {
+    throw new TypeError('headers cannot be null');
+  }
+  if (typeof headers !== 'object') {
+    throw new TypeError('headers must be an object but was ' + (typeof headers));
+  }
+  this.statusCode = statusCode;
+  this.headers = {};
+  for (var key in headers) {
+    this.headers[key.toLowerCase()] = headers[key];
+  }
+  this.body = body;
+}
+
+Response.prototype.getBody = function (encoding) {
+  if (this.statusCode >= 300) {
+    var err = new Error('Server responded with status code '
+                    + this.statusCode + ':\n' + this.body.toString());
+    err.statusCode = this.statusCode;
+    err.headers = this.headers;
+    err.body = this.body;
+    throw err;
+  }
+  return encoding ? this.body.toString(encoding) : this.body;
+};
+
+},{}],368:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./lib/core.js')
+require('./lib/done.js')
+require('./lib/es6-extensions.js')
+require('./lib/node-extensions.js')
+},{"./lib/core.js":369,"./lib/done.js":370,"./lib/es6-extensions.js":371,"./lib/node-extensions.js":372}],369:[function(require,module,exports){
+'use strict';
+
+var asap = require('asap')
+
+module.exports = Promise;
+function Promise(fn) {
+  if (typeof this !== 'object') throw new TypeError('Promises must be constructed via new')
+  if (typeof fn !== 'function') throw new TypeError('not a function')
+  var state = null
+  var value = null
+  var deferreds = []
+  var self = this
+
+  this.then = function(onFulfilled, onRejected) {
+    return new self.constructor(function(resolve, reject) {
+      handle(new Handler(onFulfilled, onRejected, resolve, reject))
+    })
+  }
+
+  function handle(deferred) {
+    if (state === null) {
+      deferreds.push(deferred)
+      return
+    }
+    asap(function() {
+      var cb = state ? deferred.onFulfilled : deferred.onRejected
+      if (cb === null) {
+        (state ? deferred.resolve : deferred.reject)(value)
+        return
+      }
+      var ret
+      try {
+        ret = cb(value)
+      }
+      catch (e) {
+        deferred.reject(e)
+        return
+      }
+      deferred.resolve(ret)
+    })
+  }
+
+  function resolve(newValue) {
+    try { //Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
+      if (newValue === self) throw new TypeError('A promise cannot be resolved with itself.')
+      if (newValue && (typeof newValue === 'object' || typeof newValue === 'function')) {
+        var then = newValue.then
+        if (typeof then === 'function') {
+          doResolve(then.bind(newValue), resolve, reject)
+          return
+        }
+      }
+      state = true
+      value = newValue
+      finale()
+    } catch (e) { reject(e) }
+  }
+
+  function reject(newValue) {
+    state = false
+    value = newValue
+    finale()
+  }
+
+  function finale() {
+    for (var i = 0, len = deferreds.length; i < len; i++)
+      handle(deferreds[i])
+    deferreds = null
+  }
+
+  doResolve(fn, resolve, reject)
+}
+
+
+function Handler(onFulfilled, onRejected, resolve, reject){
+  this.onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : null
+  this.onRejected = typeof onRejected === 'function' ? onRejected : null
+  this.resolve = resolve
+  this.reject = reject
+}
+
+/**
+ * Take a potentially misbehaving resolver function and make sure
+ * onFulfilled and onRejected are only called once.
+ *
+ * Makes no guarantees about asynchrony.
+ */
+function doResolve(fn, onFulfilled, onRejected) {
+  var done = false;
+  try {
+    fn(function (value) {
+      if (done) return
+      done = true
+      onFulfilled(value)
+    }, function (reason) {
+      if (done) return
+      done = true
+      onRejected(reason)
+    })
+  } catch (ex) {
+    if (done) return
+    done = true
+    onRejected(ex)
+  }
+}
+
+},{"asap":373}],370:[function(require,module,exports){
+'use strict';
+
+var Promise = require('./core.js')
+var asap = require('asap')
+
+module.exports = Promise
+Promise.prototype.done = function (onFulfilled, onRejected) {
+  var self = arguments.length ? this.then.apply(this, arguments) : this
+  self.then(null, function (err) {
+    asap(function () {
+      throw err
+    })
+  })
+}
+},{"./core.js":369,"asap":373}],371:[function(require,module,exports){
+'use strict';
+
+//This file contains the ES6 extensions to the core Promises/A+ API
+
+var Promise = require('./core.js')
+var asap = require('asap')
+
+module.exports = Promise
+
+/* Static Functions */
+
+function ValuePromise(value) {
+  this.then = function (onFulfilled) {
+    if (typeof onFulfilled !== 'function') return this
+    return new Promise(function (resolve, reject) {
+      asap(function () {
+        try {
+          resolve(onFulfilled(value))
+        } catch (ex) {
+          reject(ex);
+        }
+      })
+    })
+  }
+}
+ValuePromise.prototype = Promise.prototype
+
+var TRUE = new ValuePromise(true)
+var FALSE = new ValuePromise(false)
+var NULL = new ValuePromise(null)
+var UNDEFINED = new ValuePromise(undefined)
+var ZERO = new ValuePromise(0)
+var EMPTYSTRING = new ValuePromise('')
+
+Promise.resolve = function (value) {
+  if (value instanceof Promise) return value
+
+  if (value === null) return NULL
+  if (value === undefined) return UNDEFINED
+  if (value === true) return TRUE
+  if (value === false) return FALSE
+  if (value === 0) return ZERO
+  if (value === '') return EMPTYSTRING
+
+  if (typeof value === 'object' || typeof value === 'function') {
+    try {
+      var then = value.then
+      if (typeof then === 'function') {
+        return new Promise(then.bind(value))
+      }
+    } catch (ex) {
+      return new Promise(function (resolve, reject) {
+        reject(ex)
+      })
+    }
+  }
+
+  return new ValuePromise(value)
+}
+
+Promise.all = function (arr) {
+  var args = Array.prototype.slice.call(arr)
+
+  return new Promise(function (resolve, reject) {
+    if (args.length === 0) return resolve([])
+    var remaining = args.length
+    function res(i, val) {
+      try {
+        if (val && (typeof val === 'object' || typeof val === 'function')) {
+          var then = val.then
+          if (typeof then === 'function') {
+            then.call(val, function (val) { res(i, val) }, reject)
+            return
+          }
+        }
+        args[i] = val
+        if (--remaining === 0) {
+          resolve(args);
+        }
+      } catch (ex) {
+        reject(ex)
+      }
+    }
+    for (var i = 0; i < args.length; i++) {
+      res(i, args[i])
+    }
+  })
+}
+
+Promise.reject = function (value) {
+  return new Promise(function (resolve, reject) { 
+    reject(value);
+  });
+}
+
+Promise.race = function (values) {
+  return new Promise(function (resolve, reject) { 
+    values.forEach(function(value){
+      Promise.resolve(value).then(resolve, reject);
+    })
+  });
+}
+
+/* Prototype Methods */
+
+Promise.prototype['catch'] = function (onRejected) {
+  return this.then(null, onRejected);
+}
+
+},{"./core.js":369,"asap":373}],372:[function(require,module,exports){
+'use strict';
+
+//This file contains then/promise specific extensions that are only useful for node.js interop
+
+var Promise = require('./core.js')
+var asap = require('asap')
+
+module.exports = Promise
+
+/* Static Functions */
+
+Promise.denodeify = function (fn, argumentCount) {
+  argumentCount = argumentCount || Infinity
+  return function () {
+    var self = this
+    var args = Array.prototype.slice.call(arguments)
+    return new Promise(function (resolve, reject) {
+      while (args.length && args.length > argumentCount) {
+        args.pop()
+      }
+      args.push(function (err, res) {
+        if (err) reject(err)
+        else resolve(res)
+      })
+      var res = fn.apply(self, args)
+      if (res && (typeof res === 'object' || typeof res === 'function') && typeof res.then === 'function') {
+        resolve(res)
+      }
+    })
+  }
+}
+Promise.nodeify = function (fn) {
+  return function () {
+    var args = Array.prototype.slice.call(arguments)
+    var callback = typeof args[args.length - 1] === 'function' ? args.pop() : null
+    var ctx = this
+    try {
+      return fn.apply(this, arguments).nodeify(callback, ctx)
+    } catch (ex) {
+      if (callback === null || typeof callback == 'undefined') {
+        return new Promise(function (resolve, reject) { reject(ex) })
+      } else {
+        asap(function () {
+          callback.call(ctx, ex)
+        })
+      }
+    }
+  }
+}
+
+Promise.prototype.nodeify = function (callback, ctx) {
+  if (typeof callback != 'function') return this
+
+  this.then(function (value) {
+    asap(function () {
+      callback.call(ctx, null, value)
+    })
+  }, function (err) {
+    asap(function () {
+      callback.call(ctx, err)
+    })
+  })
+}
+
+},{"./core.js":369,"asap":373}],373:[function(require,module,exports){
+(function (process){
+
+// Use the fastest possible means to execute a task in a future turn
+// of the event loop.
+
+// linked list of tasks (single, with head node)
+var head = {task: void 0, next: null};
+var tail = head;
+var flushing = false;
+var requestFlush = void 0;
+var isNodeJS = false;
+
+function flush() {
+    /* jshint loopfunc: true */
+
+    while (head.next) {
+        head = head.next;
+        var task = head.task;
+        head.task = void 0;
+        var domain = head.domain;
+
+        if (domain) {
+            head.domain = void 0;
+            domain.enter();
+        }
+
+        try {
+            task();
+
+        } catch (e) {
+            if (isNodeJS) {
+                // In node, uncaught exceptions are considered fatal errors.
+                // Re-throw them synchronously to interrupt flushing!
+
+                // Ensure continuation if the uncaught exception is suppressed
+                // listening "uncaughtException" events (as domains does).
+                // Continue in next event to avoid tick recursion.
+                if (domain) {
+                    domain.exit();
+                }
+                setTimeout(flush, 0);
+                if (domain) {
+                    domain.enter();
+                }
+
+                throw e;
+
+            } else {
+                // In browsers, uncaught exceptions are not fatal.
+                // Re-throw them asynchronously to avoid slow-downs.
+                setTimeout(function() {
+                   throw e;
+                }, 0);
+            }
+        }
+
+        if (domain) {
+            domain.exit();
+        }
+    }
+
+    flushing = false;
+}
+
+if (typeof process !== "undefined" && process.nextTick) {
+    // Node.js before 0.9. Note that some fake-Node environments, like the
+    // Mocha test runner, introduce a `process` global without a `nextTick`.
+    isNodeJS = true;
+
+    requestFlush = function () {
+        process.nextTick(flush);
+    };
+
+} else if (typeof setImmediate === "function") {
+    // In IE10, Node.js 0.9+, or https://github.com/NobleJS/setImmediate
+    if (typeof window !== "undefined") {
+        requestFlush = setImmediate.bind(window, flush);
+    } else {
+        requestFlush = function () {
+            setImmediate(flush);
+        };
+    }
+
+} else if (typeof MessageChannel !== "undefined") {
+    // modern browsers
+    // http://www.nonblocking.io/2011/06/windownexttick.html
+    var channel = new MessageChannel();
+    channel.port1.onmessage = flush;
+    requestFlush = function () {
+        channel.port2.postMessage(0);
+    };
+
+} else {
+    // old browsers
+    requestFlush = function () {
+        setTimeout(flush, 0);
+    };
+}
+
+function asap(task) {
+    tail = tail.next = {
+        task: task,
+        domain: isNodeJS && process.domain,
+        next: null
+    };
+
+    if (!flushing) {
+        flushing = true;
+        requestFlush();
+    }
+};
+
+module.exports = asap;
+
+
+}).call(this,require("1YiZ5S"))
+},{"1YiZ5S":22}],374:[function(require,module,exports){
+arguments[4][204][0].apply(exports,arguments)
+},{"./lib/":375}],375:[function(require,module,exports){
+arguments[4][205][0].apply(exports,arguments)
+},{"./parse":376,"./stringify":377}],376:[function(require,module,exports){
+// Load modules
+
+var Utils = require('./utils');
+
+
+// Declare internals
+
+var internals = {
+    delimiter: '&',
+    depth: 5,
+    arrayLimit: 20,
+    parameterLimit: 1000
+};
+
+
+internals.parseValues = function (str, options) {
+
+    var obj = {};
+    var parts = str.split(options.delimiter, options.parameterLimit === Infinity ? undefined : options.parameterLimit);
+
+    for (var i = 0, il = parts.length; i < il; ++i) {
+        var part = parts[i];
+        var pos = part.indexOf(']=') === -1 ? part.indexOf('=') : part.indexOf(']=') + 1;
+
+        if (pos === -1) {
+            obj[Utils.decode(part)] = '';
+        }
+        else {
+            var key = Utils.decode(part.slice(0, pos));
+            var val = Utils.decode(part.slice(pos + 1));
+
+            if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+                obj[key] = val;
+            }
+            else {
+                obj[key] = [].concat(obj[key]).concat(val);
+            }
+        }
+    }
+
+    return obj;
+};
+
+
+internals.parseObject = function (chain, val, options) {
+
+    if (!chain.length) {
+        return val;
+    }
+
+    var root = chain.shift();
+
+    var obj = {};
+    if (root === '[]') {
+        obj = [];
+        obj = obj.concat(internals.parseObject(chain, val, options));
+    }
+    else {
+        var cleanRoot = root[0] === '[' && root[root.length - 1] === ']' ? root.slice(1, root.length - 1) : root;
+        var index = parseInt(cleanRoot, 10);
+        var indexString = '' + index;
+        if (!isNaN(index) &&
+            root !== cleanRoot &&
+            indexString === cleanRoot &&
+            index >= 0 &&
+            index <= options.arrayLimit) {
+
+            obj = [];
+            obj[index] = internals.parseObject(chain, val, options);
+        }
+        else {
+            obj[cleanRoot] = internals.parseObject(chain, val, options);
+        }
+    }
+
+    return obj;
+};
+
+
+internals.parseKeys = function (key, val, options) {
+
+    if (!key) {
+        return;
+    }
+
+    // The regex chunks
+
+    var parent = /^([^\[\]]*)/;
+    var child = /(\[[^\[\]]*\])/g;
+
+    // Get the parent
+
+    var segment = parent.exec(key);
+
+    // Don't allow them to overwrite object prototype properties
+
+    if (Object.prototype.hasOwnProperty(segment[1])) {
+        return;
+    }
+
+    // Stash the parent if it exists
+
+    var keys = [];
+    if (segment[1]) {
+        keys.push(segment[1]);
+    }
+
+    // Loop through children appending to the array until we hit depth
+
+    var i = 0;
+    while ((segment = child.exec(key)) !== null && i < options.depth) {
+
+        ++i;
+        if (!Object.prototype.hasOwnProperty(segment[1].replace(/\[|\]/g, ''))) {
+            keys.push(segment[1]);
+        }
+    }
+
+    // If there's a remainder, just add whatever is left
+
+    if (segment) {
+        keys.push('[' + key.slice(segment.index) + ']');
+    }
+
+    return internals.parseObject(keys, val, options);
+};
+
+
+module.exports = function (str, options) {
+
+    if (str === '' ||
+        str === null ||
+        typeof str === 'undefined') {
+
+        return {};
+    }
+
+    options = options || {};
+    options.delimiter = typeof options.delimiter === 'string' || Utils.isRegExp(options.delimiter) ? options.delimiter : internals.delimiter;
+    options.depth = typeof options.depth === 'number' ? options.depth : internals.depth;
+    options.arrayLimit = typeof options.arrayLimit === 'number' ? options.arrayLimit : internals.arrayLimit;
+    options.parameterLimit = typeof options.parameterLimit === 'number' ? options.parameterLimit : internals.parameterLimit;
+
+    var tempObj = typeof str === 'string' ? internals.parseValues(str, options) : str;
+    var obj = {};
+
+    // Iterate over the keys and setup the new object
+
+    var keys = Object.keys(tempObj);
+    for (var i = 0, il = keys.length; i < il; ++i) {
+        var key = keys[i];
+        var newObj = internals.parseKeys(key, tempObj[key], options);
+        obj = Utils.merge(obj, newObj);
+    }
+
+    return Utils.compact(obj);
+};
+
+},{"./utils":378}],377:[function(require,module,exports){
+module.exports=require(207)
+},{"./utils":378}],378:[function(require,module,exports){
+module.exports=require(208)
 },{}]},{},[16])

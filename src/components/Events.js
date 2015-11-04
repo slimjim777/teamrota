@@ -20,8 +20,8 @@ var Events = React.createClass({
     getEvents: function() {
         var self = this;
         self.setState({eventsLoading: true});
-        var result = EventModel.all();
-        result.done(function(data) {
+        EventModel.all().then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ events: data.events, eventsLoading: false });
         });
     },

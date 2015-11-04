@@ -49,7 +49,7 @@ var routes = (
         <Route path="events" handler={Events} />
         <Route path="events/:id" handler={EventDetail} />
         <Route path="events/:id/overview" handler={EventOverview} />
-        <Route path="events/:id/:dateId" handler={EventDetail} />
+        <Route path="events/:id/:onDate" handler={EventDetail} />
     </Route>
 );
 

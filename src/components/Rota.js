@@ -33,7 +33,7 @@ var Rota = React.createClass({
                     <tbody>
                     {this.props.rota.map(function(rota) {
                         index += 1;
-                        var eventLink = '#/events/' + rota.eventId + '/' + rota.eventDateId;
+                        var eventLink = '#/events/' + rota.eventId + '/' + rota.eventDate.substring(0,10);
                         return (
                             <tr key={index}>
                                 <td>{moment(rota.eventDate).format('DD/MM/YYYY')}</td>

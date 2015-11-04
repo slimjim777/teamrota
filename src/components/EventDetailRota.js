@@ -30,7 +30,7 @@ var EventDetailRota = React.createClass({
         var summary = this.props.summary;
         var rota = this.props.rota;
 
-        if (!this.props.dateId) {
+        if (!this.props.onDate) {
             return (
                 <div>Select a date to display the rota.</div>
             );

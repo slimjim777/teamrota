@@ -19,6 +19,10 @@ var EventModel = {
         return Ajax.get(this.url() + '/' + modelId);
     },
 
+    date: function(modelId, onDate) {
+        return Ajax.get(this.url() + '/' + modelId + '/date/' + onDate);
+    },
+
     dates: function(modelId) {
         return Ajax.get(this.url() + '/' + modelId + '/dates');
     },

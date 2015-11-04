@@ -25,8 +25,8 @@ var EventDetailDates = React.createClass({
         }
     },
 
-    handleClick: function(eventId, dateId) {
-        $(document).trigger('dateTransition', [eventId, dateId]);
+    handleClick: function(eventId, onDate) {
+        $(document).trigger('dateTransition', [eventId, onDate]);
     },
 
     render: function() {
@@ -36,21 +36,21 @@ var EventDetailDates = React.createClass({
                 <div className="panel-heading">
                     <h3 className="panel-title">
                         {this.renderSpinner()}
-                        Dates&nbsp;
-                        {this.renderActions()}
+                        Dates
                     </h3>
                 </div>
                 <div className="panel-body">
                     <div>
                         {this.props.eventDates.map(function(ed) {
-                            var link = '#/events/1/' + ed.id;
+                            var link = '#/events/1/' + ed.on_date.substring(0, 10);
                             var buttonClass = 'btn btn-primary btn-sm';
-                            if (self.props.dateId === ed.id) {
+                            if (self.props.onDate === ed.on_date.substring(0, 10)) {
                                 buttonClass += ' active';
                             }
                             return (
                                 <a href={link} key={ed.id} className={buttonClass} title="View Rota"
-                                   onClick={self.handleClick.bind(self, ed.event_id, ed.id)}>
+                                   onClick={self.handleClick.bind(
+                                        self, ed.event_id, moment(ed.on_date).format('YYYY-MM-DD'))}>
                                     {moment(ed.on_date).format('DD/MM/YYYY')}
                                 </a>
                             );

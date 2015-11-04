@@ -98,13 +98,11 @@ select.role-select {
 
 .rota td, .rota th {
     text-overflow: ellipsis;
+    overflow: hidden;
     white-space: nowrap;
 }
 
  /* Start of JLS Css */
- .rota, .rota th{
- 	text-align: center;
- }
  .container {
  	margin: 0 auto;
  	display: block;

@@ -1,30 +1,27 @@
 'use strict';
 var $ = require('jquery');
+var request =require('then-request');
 
 
 // Wrapper for API calls to add the authorization header
 var Ajax = {
     get: function(url) {
-        return $.ajax(url, {
+        return request('GET', url, {
             headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')}
         });
     },
 
     post: function(url, data) {
-        return $.ajax(url, {
+        return request('POST', url, {
             headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')},
-            dataType: 'json',
-            data: data,
-            method: 'POST'
+            json: data
         });
     },
 
     put: function(url, data) {
-        return $.ajax(url, {
+        return request('PUT', url, {
             headers: {'Authorization': 'Bearer ' + sessionStorage.getItem('token')},
-            dataType: 'json',
-            data: data,
-            method: 'PUT'
+            json: data
         });
     }
 };

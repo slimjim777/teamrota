@@ -22,8 +22,8 @@ var MyRota = React.createClass({
         var personId = this.props.params.id;
 
         // Get the person details
-        var result = Person.findById(personId);
-        result.done(function(data) {
+        Person.findById(personId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ person: data });
             self.getRota(data.id, RANGE);
             self.getAwayDates(data.id, RANGE);
@@ -34,8 +34,8 @@ var MyRota = React.createClass({
     getRota: function(personId, range) {
         var self = this;
         self.setState({rotaIsLoading: true});
-        var result = Person.rota(personId, range);
-        result.done(function(data) {
+        Person.rota(personId, range).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ rota: data.rota, rotaIsLoading: false });
         });
     },
@@ -43,8 +43,8 @@ var MyRota = React.createClass({
     getAwayDates: function(personId, range) {
         var self = this;
         self.setState({awayIsLoading: true});
-        var result = Person.awayDates(personId, range);
-        result.done(function(data) {
+        Person.awayDates(personId, range).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({ awayDates: data.awayDates, awayIsLoading: false });
         });
     },

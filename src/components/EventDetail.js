@@ -13,7 +13,7 @@ var EventDetailDates = require('../components/EventDetailDates');
 var EventDetail = React.createClass({
 
     getInitialState: function() {
-        return ({eventLoading: false, model: {}, dateId: null, eventDate: {}, dateSummary: {}, rota: [], roles: [],
+        return ({eventLoading: false, model: {}, onDate: null, eventDate: {}, dateSummary: {}, rota: [], roles: [],
             eventDatesLoading: false, dates: [], user: null, isEditing: false});
     },
 
@@ -28,9 +28,9 @@ var EventDetail = React.createClass({
         this.getEvent(modelId);
         this.getEventDates(modelId);
 
-        var dateId = this.props.params.dateId;
-        if (dateId) {
-            this.getEventDate(dateId);
+        var onDate = this.props.params.onDate;
+        if (onDate) {
+            this.getEventDate(modelId, onDate);
         }
     },
 
@@ -40,8 +40,8 @@ var EventDetail = React.createClass({
 
     getPermissions: function () {
         var self = this;
-        var result = Person.permissions();
-        result.done(function(user) {
+        Person.permissions().then(function(response) {
+            var user = JSON.parse(response.body);
             user.role_rota = sessionStorage.getItem('role_rota');
             self.setState({user: user});
         });
@@ -69,8 +69,8 @@ var EventDetail = React.createClass({
     getEvent: function(modelId) {
         var self = this;
         self.setState({eventLoading: true });
-        var result = EventModel.findById(modelId);
-        result.done(function(data) {
+        EventModel.findById(modelId).then(function(response) {
+            var data = JSON.parse(response.body);
             self.setState({model: data.model, eventLoading: false });
         });
     },
@@ -78,29 +78,31 @@ var EventDetail = React.createClass({
     getEventDates: function(modelId) {
         var self = this;
         self.setState({eventDatesLoading: true });
-        var result = EventModel.dates(modelId);
-        result.done(function(data) {
-            if ((!self.state.dateId) && (data.dates.length > 0)) {
+        EventModel.dates(modelId).then(function(response) {
+            var data = JSON.parse(response.body);
+            if ((!self.state.onDate) && (data.dates.length > 0)) {
                 var firstDate = data.dates[0];
-                self.getEventDate(firstDate.id);
+                self.getEventDate(modelId, firstDate.on_date);
             }
             self.setState({dates: data.dates, eventDatesLoading: false});
         });
     },
 
-    getEventDate: function(dateId) {
+    getEventDate: function(modelId, onDate) {
+        console.log('getEventDate');
         var self = this;
-        self.setState({eventDateLoading: true, dateId: parseInt(dateId)});
-        var result = EventDate.findById(dateId);
-        result.done(function(data) {
+        self.setState({eventDateLoading: true, onDate: onDate});
+        EventDate.findByDate(modelId, onDate).then(function(response) {
+            var data = JSON.parse(response.body);
+            console.log(data);
             self.setState({
-                dateSummary: data.summary, rota: data.rota, roles: data.roles, dateId: dateId,
+                dateSummary: data.summary, rota: data.rota, roles: data.roles, onDate: onDate,
                 eventDateLoading: false });
         });
     },
 
-    handleDateChange: function(e, eventId, dateId) {
-        this.getEventDate(dateId);
+    handleDateChange: function(e, eventId, onDate) {
+        this.getEventDate(eventId, onDate);
     },
 
     handleToggleEdit: function(e) {
@@ -112,19 +114,19 @@ var EventDetail = React.createClass({
 
     refreshData: function() {
         this.setState({isEditing: false});
-        this.getEventDate(this.state.dateId);
+        this.getEventDate(this.state.model.id, this.state.onDate);
     },
 
     renderRota: function() {
         if (this.state.isEditing) {
             return (
-                <EventDetailRotaEdit dateId={this.state.dateId} summary={this.state.dateSummary} rota={this.state.rota}
+                <EventDetailRotaEdit onDate={this.state.onDate} summary={this.state.dateSummary} rota={this.state.rota}
                                  canAdministrate={this.canAdministrate()} refreshData={this.refreshData}
                                      toggleEdit={this.handleToggleEdit} roles={this.state.roles} />
             );
         } else {
             return (
-                <EventDetailRota dateId={this.state.dateId} summary={this.state.dateSummary} rota={this.state.rota}
+                <EventDetailRota onDate={this.state.onDate} summary={this.state.dateSummary} rota={this.state.rota}
                                  canAdministrate={this.canAdministrate()} toggleEdit={this.handleToggleEdit}/>
             );
         }
@@ -139,7 +141,7 @@ var EventDetail = React.createClass({
 
                 <div className="col-md-4 col-sm-4 col-xs-12">
                     <EventDetailDates eventDates={this.state.dates} canAdministrate={this.canAdministrate()}
-                                      dateId={this.state.dateId}
+                                      onDate={this.state.onDate}
                                       datesLoading={this.state.eventDatesLoading} />
                     <EventDetailPanel model={model} />
                 </div>
