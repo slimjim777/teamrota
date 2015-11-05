@@ -36,9 +36,9 @@ var EventDetailRotaEdit = React.createClass({
         e.preventDefault();
         var self = this;
 
-        EventDate.updateRota(
-            this.props.dateId, this.state.rota, this.state.focus, this.state.notes, this.state.url).then(
-                function(data) {
+        //EventDate.updateRota(
+        EventDate.createRota(this.props.model.id, this.props.onDate, this.state.rota, this.state.focus,
+            this.state.notes, this.state.url).then(function(data) {
             self.props.refreshData();
         });
     },

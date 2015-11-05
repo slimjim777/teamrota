@@ -59,7 +59,6 @@ var EventDate = {
         var eventDate = {
             eventId: eventId, onDate: onDate, focus: focus, notes: notes, url: url, rota: rota
         };
-        console.log(eventDate);
         return Ajax.post(this.url(), eventDate);
     },
 

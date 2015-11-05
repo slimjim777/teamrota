@@ -155,19 +155,17 @@ var EventDetail = React.createClass({displayName: "EventDetail",
             var data = JSON.parse(response.body);
             if ((!self.state.onDate) && (data.dates.length > 0)) {
                 var firstDate = data.dates[0];
-                self.getEventDate(modelId, firstDate.on_date);
+                self.getEventDate(modelId, firstDate);
             }
             self.setState({dates: data.dates, eventDatesLoading: false});
         });
     },
 
     getEventDate: function(modelId, onDate) {
-        console.log('getEventDate');
         var self = this;
         self.setState({eventDateLoading: true, onDate: onDate});
         EventDate.findByDate(modelId, onDate).then(function(response) {
             var data = JSON.parse(response.body);
-            console.log(data);
             self.setState({
                 dateSummary: data.summary, rota: data.rota, roles: data.roles, onDate: onDate,
                 eventDateLoading: false });
@@ -193,8 +191,9 @@ var EventDetail = React.createClass({displayName: "EventDetail",
     renderRota: function() {
         if (this.state.isEditing) {
             return (
-                React.createElement(EventDetailRotaEdit, {onDate: this.state.onDate, summary: this.state.dateSummary, rota: this.state.rota, 
-                                 canAdministrate: this.canAdministrate(), refreshData: this.refreshData, 
+                React.createElement(EventDetailRotaEdit, {model: this.state.model, onDate: this.state.onDate, 
+                                     summary: this.state.dateSummary, rota: this.state.rota, 
+                                     canAdministrate: this.canAdministrate(), refreshData: this.refreshData, 
                                      toggleEdit: this.handleToggleEdit, roles: this.state.roles})
             );
         } else {
@@ -214,7 +213,7 @@ var EventDetail = React.createClass({displayName: "EventDetail",
 
                 React.createElement("div", {className: "col-md-4 col-sm-4 col-xs-12"}, 
                     React.createElement(EventDetailDates, {eventDates: this.state.dates, canAdministrate: this.canAdministrate(), 
-                                      onDate: this.state.onDate, 
+                                      model: this.state.model, onDate: this.state.onDate, 
                                       datesLoading: this.state.eventDatesLoading}), 
                     React.createElement(EventDetailPanel, {model: model})
                 ), 
@@ -272,16 +271,15 @@ var EventDetailDates = React.createClass({displayName: "EventDetailDates",
                 React.createElement("div", {className: "panel-body"}, 
                     React.createElement("div", null, 
                         this.props.eventDates.map(function(ed) {
-                            var link = '#/events/1/' + ed.on_date.substring(0, 10);
+                            var link = '#/events/1/' + ed;
                             var buttonClass = 'btn btn-primary btn-sm';
-                            if (self.props.onDate === ed.on_date.substring(0, 10)) {
+                            if (self.props.onDate === ed) {
                                 buttonClass += ' active';
                             }
                             return (
-                                React.createElement("a", {href: link, key: ed.id, className: buttonClass, title: "View Rota", 
-                                   onClick: self.handleClick.bind(
-                                        self, ed.event_id, moment(ed.on_date).format('YYYY-MM-DD'))}, 
-                                    moment(ed.on_date).format('DD/MM/YYYY')
+                                React.createElement("a", {href: link, key: ed, className: buttonClass, title: "View Rota", 
+                                   onClick: self.handleClick.bind(self, self.props.model.id, ed)}, 
+                                    moment(ed).format('DD/MM/YYYY')
                                 )
                             );
                         })
@@ -504,9 +502,9 @@ var EventDetailRotaEdit = React.createClass({displayName: "EventDetailRotaEdit",
         e.preventDefault();
         var self = this;
 
-        EventDate.updateRota(
-            this.props.dateId, this.state.rota, this.state.focus, this.state.notes, this.state.url).then(
-                function(data) {
+        //EventDate.updateRota(
+        EventDate.createRota(this.props.model.id, this.props.onDate, this.state.rota, this.state.focus,
+            this.state.notes, this.state.url).then(function(data) {
             self.props.refreshData();
         });
     },
@@ -1723,7 +1721,6 @@ var EventDate = {
         var eventDate = {
             eventId: eventId, onDate: onDate, focus: focus, notes: notes, url: url, rota: rota
         };
-        console.log(eventDate);
         return Ajax.post(this.url(), eventDate);
     },
 

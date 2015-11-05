@@ -82,19 +82,17 @@ var EventDetail = React.createClass({
             var data = JSON.parse(response.body);
             if ((!self.state.onDate) && (data.dates.length > 0)) {
                 var firstDate = data.dates[0];
-                self.getEventDate(modelId, firstDate.on_date);
+                self.getEventDate(modelId, firstDate);
             }
             self.setState({dates: data.dates, eventDatesLoading: false});
         });
     },
 
     getEventDate: function(modelId, onDate) {
-        console.log('getEventDate');
         var self = this;
         self.setState({eventDateLoading: true, onDate: onDate});
         EventDate.findByDate(modelId, onDate).then(function(response) {
             var data = JSON.parse(response.body);
-            console.log(data);
             self.setState({
                 dateSummary: data.summary, rota: data.rota, roles: data.roles, onDate: onDate,
                 eventDateLoading: false });
@@ -120,8 +118,9 @@ var EventDetail = React.createClass({
     renderRota: function() {
         if (this.state.isEditing) {
             return (
-                <EventDetailRotaEdit onDate={this.state.onDate} summary={this.state.dateSummary} rota={this.state.rota}
-                                 canAdministrate={this.canAdministrate()} refreshData={this.refreshData}
+                <EventDetailRotaEdit model={this.state.model} onDate={this.state.onDate}
+                                     summary={this.state.dateSummary} rota={this.state.rota}
+                                     canAdministrate={this.canAdministrate()} refreshData={this.refreshData}
                                      toggleEdit={this.handleToggleEdit} roles={this.state.roles} />
             );
         } else {
@@ -141,7 +140,7 @@ var EventDetail = React.createClass({
 
                 <div className="col-md-4 col-sm-4 col-xs-12">
                     <EventDetailDates eventDates={this.state.dates} canAdministrate={this.canAdministrate()}
-                                      onDate={this.state.onDate}
+                                      model={this.state.model} onDate={this.state.onDate}
                                       datesLoading={this.state.eventDatesLoading} />
                     <EventDetailPanel model={model} />
                 </div>

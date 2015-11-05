@@ -42,16 +42,15 @@ var EventDetailDates = React.createClass({
                 <div className="panel-body">
                     <div>
                         {this.props.eventDates.map(function(ed) {
-                            var link = '#/events/1/' + ed.on_date.substring(0, 10);
+                            var link = '#/events/1/' + ed;
                             var buttonClass = 'btn btn-primary btn-sm';
-                            if (self.props.onDate === ed.on_date.substring(0, 10)) {
+                            if (self.props.onDate === ed) {
                                 buttonClass += ' active';
                             }
                             return (
-                                <a href={link} key={ed.id} className={buttonClass} title="View Rota"
-                                   onClick={self.handleClick.bind(
-                                        self, ed.event_id, moment(ed.on_date).format('YYYY-MM-DD'))}>
-                                    {moment(ed.on_date).format('DD/MM/YYYY')}
+                                <a href={link} key={ed} className={buttonClass} title="View Rota"
+                                   onClick={self.handleClick.bind(self, self.props.model.id, ed)}>
+                                    {moment(ed).format('DD/MM/YYYY')}
                                 </a>
                             );
                         })}
